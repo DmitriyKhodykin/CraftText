@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<!--From https://codepen.io/frytyler/pen/EGdtg-->
+<head>
+    <meta charset="UTF-8">
+    <title>PASPORT WEB UI</title>
+    <link href='https://fonts.googleapis.com/css?family=Pacifico' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Arimo' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Hind:300' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans+Condensed:300' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<p>
+<h1>ВЕБ Сервис ПАСПОРТ РФ</h1>
+</p>
+
+<div class="row">
+    <div class="block">
+        <form id="upload-container" method="POST" action="send.php">
+            <img id="upload-image" src="/static/upload.png">
+            <div>
+                <input id="file-input" type="file" name="file" multiple>
+                <label for="file-input">Выберите файл</label>
+                <span>или перетащите его сюда</span>
+            </div>
+    </form>
+    </div>
+
+    <div class="pasport">
+        <img src="/images/Pasport3.png" alt="Изображение паспорта">
+    </div>
+
+    <div class="block">
+        <form id="export-container" action="send.php">
+            <input type="text" name="surname" placeholder="Фамилия" required="required"/><br>
+            <input type="text" name="name" placeholder="Имя" required="required"/><br>
+            <input type="text" name="second" placeholder="Отчество" required="required"/><br>
+            <input type="number" name="year" placeholder="Год рождения" required="required"/><br>
+            <input type="number" name="series" placeholder="Серия" required="required"/><br>
+            <input type="number" name="number" placeholder="Номер" required="required"/><br>
+        </form>
+    </div>
+</div>
+
+</body>
+
+</html>
