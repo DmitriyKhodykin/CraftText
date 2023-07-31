@@ -55,17 +55,16 @@ class PasportOCR:
         except AttributeError:
             print("Изображение не загрузилось, проверьте путь")
         
-        # Фильтры ( оттенки серого, размытие по Гауссу, пороговая обработка)
+        # Фильтры (оттенки серого, размытие по Гауссу, пороговая обработка)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, (3,3), 0)
         thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
         kernel = np.ones((7,7), np.uint8)
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3)) 
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3))
         
         # Морфология изображения (расширение, открытие, закрытие изображения)
-        # global morph
-        morph = cv2.dilate(img, kernel, iterations=9)
-        morph = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+        morph = cv2.dilate(img, kernel, iterations=9)             # 
+        morph = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)  # Morphological Gradient
         morph = cv2.morphologyEx(morph, cv2.MORPH_CLOSE, kernel)
         
         # Поиск контуров (извлечение внешних контуров, получение только 2х основных точек)
@@ -84,7 +83,7 @@ class PasportOCR:
         cv2.drawContours(page, [big_contour], 0, (255,255,255), -1)
         peri = cv2.arcLength(big_contour, True)
         corners = cv2.approxPolyDP(big_contour, 0.04 * peri, True)
-        global polygon
+
         polygon = img.copy()
         cv2.polylines(polygon, [corners], True, (0,0,255), 3, cv2.LINE_AA)
         yarr = list()
@@ -103,7 +102,7 @@ class PasportOCR:
         pX = max(yarr)
         y = min(xarr)
         pY = max(xarr)
-        global photo
+
         photo = img[y:pY, x:pX]
         return photo
 
@@ -160,17 +159,27 @@ class PasportOCR:
         if mrzText[0][0:1] != 'P':
             del mrzText[0]
 
+        # Проверка числа символов
+        print("Символов в первой строке:", len(mrzText[0]))
+        print("Символов во второй строке:", len(mrzText[1]))
+
         # Разбор строки по элементам
         el1 = mrzText[0]
         el2 = mrzText[1]
+
+        # Частые ошибки OCR
         el1 = el1.replace('1','I')
         el2 = el2.replace('O','0')
+
+        # Парсинг ФИО
         el1 = el1[5:]
         el1 = re.split("<<|<|\n", el1)
         el2 = re.split("RUS|<", el2)
+
         el1 = list(filter(None, el1))
         el1 = list(map(list, el1))
         el1 = el1[0:3]
+
         el2 = list(filter(None, el2))
 
         for i in el1:
@@ -178,26 +187,47 @@ class PasportOCR:
                 ind = eng.index(str(j))
                 i[c] = rus[ind]
         
+        
+        # Список в строку
         surname = ''.join(el1[0])
         name = ''.join(el1[1])
         otch = ''.join(el1[2])
+
+        # Серия, номер, дата
         seria = el2[0][0:3] + el2[2][0:1]
         nomer = el2[0][3:9]
         data = el2[1][0:6]
         
         # Транслитерация гражданства
         citizen = ""
-        for i in mrzText[0][2:5]:
+        print("MRZ:", mrzText)
+        for i in mrzText[1][10:13]:
             citizen_element_eng = eng.index(i)
             citizen_element_ru = rus[citizen_element_eng]
             citizen = citizen + citizen_element_ru
+
+        # Определение пола
+        if "M" in mrzText[1]:
+            gender = "МУЖ"
+        elif "F" in mrzText[1]:
+            gender = "ЖЕН"
+        else:
+            gender = "Не определено"
+            
         
+        # Дата рождения
         if int(data[0:1]) > 2:
             data = '19' + data
         else:
             data = '20' + data
         
         data = data[6:8] + '.' + data[4:6] + '.' + data[0:4]
+
+        # Дата выдачи
+        release = f"{mrzText[1][-11:-9]}.{mrzText[1][-13:-11]}.20{mrzText[1][-15:-13]}"
+
+        # Код подразделения
+        code = f"{mrzText[1][-9:-6]}-{mrzText[1][-6:-3]}"
         
         pasdata = {
             'SRN': surname, 
@@ -206,7 +236,10 @@ class PasportOCR:
             'BRD' : data, 
             'SER': seria, 
             'NUB': nomer,
-            'CTZ': citizen
+            'GND': gender,
+            'CTZ': citizen,
+            'RLS': release,
+            'COD': code,
         }
             
         return pasdata

@@ -21,7 +21,10 @@ def predict():
         year=pasport_data["BRD"], 
         series=pasport_data["SER"], 
         num=pasport_data["NUB"],
+        gender = pasport_data["GND"],
         ctz=pasport_data["CTZ"],
+        release=pasport_data["RLS"],
+        code=pasport_data["COD"],
     )
 
 
