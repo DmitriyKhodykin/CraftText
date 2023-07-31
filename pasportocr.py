@@ -247,8 +247,6 @@ class PasportOCR:
             first_check = "OK"
         else:
             first_check = "ОШ"
-
-        print("Контрольный список", first_check)
         
         pasdata = {
             'SRN': surname, 
