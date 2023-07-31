@@ -14,7 +14,7 @@
 <body>
 
 <p>
-<h1>ВЕБ Сервис ПАСПОРТ РФ</h1>
+<h1>ВЕБ-Сервис 🗎 ПАСПОРТ РФ 🗎</h1>
 </p>
 
 <div class="row">
@@ -26,21 +26,25 @@
                 <label for="file-input">Выберите файл</label>
                 <span>или перетащите его сюда</span>
             </div>
-    </form>
+        </form>
     </div>
 
-    <div class="pasport">
-        <img src="/images/Pasport3.png" alt="Изображение паспорта">
+    <div class="block">
+        <form id="pasport" method="POST" action="send.php">
+            <img id="pas-img" src="/static/Pasport3.png" alt="Фото Паспорта" />
+        </form>
     </div>
 
     <div class="block">
         <form id="export-container" action="send.php">
-            <input type="text" name="surname" placeholder="Фамилия" required="required"/><br>
-            <input type="text" name="name" placeholder="Имя" required="required"/><br>
-            <input type="text" name="second" placeholder="Отчество" required="required"/><br>
-            <input type="number" name="year" placeholder="Год рождения" required="required"/><br>
-            <input type="number" name="series" placeholder="Серия" required="required"/><br>
-            <input type="number" name="number" placeholder="Номер" required="required"/><br>
+            <div align="left">
+                <p><b>Фамилия:</b> {{ surname }}</p>
+                <p><b>Имя:</b> {{ name }}</p>
+                <p><b>Отчество:</b> {{ second }}</p>
+                <p><b>Год рождения:</b> {{ year }}</p>
+                <p><b>Серия/номер:</b> {{ series }} {{ num }}</p>
+                <p><b>Гражданство:</b> {{ ctz }}</p>
+            </div>
         </form>
     </div>
 </div>

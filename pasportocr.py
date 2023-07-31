@@ -1,3 +1,33 @@
+"""
+Оригинал скрипта взят: https://github.com/grmnvv/paspread
+
+Машиночитаемая зона: 
+https://www.consultant.ru/document/cons_doc_LAW_284759/bc855030a3b448fca0965bbf45ee3ff7e77314e3/
+
+Машиночитаемая запись вносится в паспорт специальным принтером с использованием шрифта 
+OCR-B type 1 (Стандарт ИСО 1073/II).
+
+OCR-B — моноширинный шрифт, созданный Адрианом Фрутигером в 1968 году для компании Monotype 
+в соответствии со стандартом ECMA. Его функцией было облегчить оптическое распознавание 
+текста для определённых устройств, в основном использовавшихся в финансовой сфере.
+
+Для заполнения позиций знаков 6 - 44 верхней строки машиночитаемой записи используется способ 
+кодирования информации "модернизированный клер", при котором буквам русского алфавита 
+соответствуют определенные буквы латинского алфавита и арабские цифры (см. списки букв в коде).
+
+Для заполнения позиций знаков нижней строки машиночитаемой записи используется цифровой способ 
+кодирования информации, кроме позиций знаков 11 - 13 и 21.
+
+Машиночитаемые данные располагаются слева направо в две строки (верхняя и нижняя) фиксированной длины. 
+Машиночитаемые данные вносятся начиная с левой позиции знаков. 
+
+Позиции знаков 10, 20, 28, 43, 44 нижней строки машиночитаемой записи содержат контрольные цифры.
+
+Если вводимые машиночитаемые данные не занимают все позиции знаков, для заполнения оставшихся позиций 
+используется знак-заполнитель.
+"""
+
+
 import imutils
 from imutils.contours import sort_contours
 import numpy as np
@@ -7,17 +37,25 @@ import cv2
 import re
 
 
-rus = [
-    'А','Б','В','Г','Д','Е','Ё','Ж','З','И',
-    'Й','К','Л','М','Н','О','П','Р','С','Т',
-    'У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'
-]
+rus = ['А','Б','В','Г',
+       'Д','Е','Ё','Ж',
+       'З','И', 'Й','К',
+       'Л','М','Н','О',
+       'П','Р','С','Т',
+       'У','Ф','Х','Ц',
+       'Ч','Ш','Щ','Ъ',
+       'Ы','Ь','Э','Ю',
+       'Я']
 
-eng = [
-    'A','B','V','G','D','E','2','J','Z','I',
-    'Q','K','L','M','N','O','P','R','S','T','U',
-    'F','H','C','3','4','W','X','Y','9','6','7','8'
-]
+eng = ['A','B','V','G',
+       'D','E','2','J',
+       'Z','I', 'Q','K',
+       'L','M','N','O',
+       'P','R','S','T',
+       'U', 'F','H','C',
+       '3','4','W','X',
+       'Y','9','6','7',
+       '8']
 
 
 class PasportOCR:
@@ -26,14 +64,18 @@ class PasportOCR:
         self.image_path = image_path
 
     def resize(self):
-        # Загрузка изображения
-        img = cv2.imread(self.image_path)
         
-        # Изменение размеров
-        final_wide = 1400
-        r = float(final_wide) / img.shape[1]
-        dim = (final_wide, int(img.shape[0] * r))
-        img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+        try:
+            # Загрузка изображения
+            img = cv2.imread(self.image_path)
+            
+            # Изменение размеров
+            final_wide = 1400
+            r = float(final_wide) / img.shape[1]
+            dim = (final_wide, int(img.shape[0] * r))
+            img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+        except AttributeError:
+            print("Изображение не загрузилось, проверьте путь")
         
         # Фильтры ( оттенки серого, размытие по Гауссу, пороговая обработка)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -43,7 +85,7 @@ class PasportOCR:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3)) 
         
         # Морфология изображения (расширение, открытие, закрытие изображения)
-        global morph
+        # global morph
         morph = cv2.dilate(img, kernel, iterations=9)
         morph = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
         morph = cv2.morphologyEx(morph, cv2.MORPH_CLOSE, kernel)
@@ -127,7 +169,7 @@ class PasportOCR:
         pY = int((y + h) * 0.1)
         (x, y) = (x - pX, y - pY)
         (w, h) = (w + (pX * 2), h + (pY * 2))
-        global mrz
+        # global mrz
         mrz = image[y:y + h, x:x + w]
         config = (" --oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789><")
         mrzText = pytesseract.image_to_string(mrz, lang='eng', config = config)
@@ -165,6 +207,13 @@ class PasportOCR:
         nomer = el2[0][3:9]
         data = el2[1][0:6]
         
+        # Транслитерация гражданства
+        citizen = ""
+        for i in mrzText[0][2:5]:
+            citizen_element_eng = eng.index(i)
+            citizen_element_ru = rus[citizen_element_eng]
+            citizen = citizen + citizen_element_ru
+        
         if int(data[0:1]) > 2:
             data = '19' + data
         else:
@@ -173,12 +222,13 @@ class PasportOCR:
         data = data[6:8] + '.' + data[4:6] + '.' + data[0:4]
         
         pasdata = {
-            'Фамилия': surname, 
-            'Имя': name, 
-            'Отчество': otch, 
-            'Дата рождения' : data, 
-            'Серия': seria, 
-            'Номер': nomer
+            'SRN': surname, 
+            'NME': name, 
+            'SNM': otch, 
+            'BRD' : data, 
+            'SER': seria, 
+            'NUB': nomer,
+            'CTZ': citizen
         }
             
         return pasdata
@@ -188,13 +238,15 @@ class PasportOCR:
             photo = self.resize()
             pasdata = self.pasp_read(photo)
             print(pasdata)
+            return pasdata
         except ValueError:
             print("Error")
             photo = cv2.imread(self.image_path)
             pasdata = self.pasp_read(photo)
             print(pasdata)
+            return pasdata
 
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
-ocr = PasportOCR("images/Pasport3.png")
+ocr = PasportOCR("static/Pasport3.png")
 ocr.exec()

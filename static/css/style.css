@@ -30,11 +30,12 @@ body {
     align-items: center;
     flex-direction: column;
     width: 390px;
-    height: 400px;
+    height: 535px;
     outline: 2px dashed #5d5d5d;
     outline-offset: -12px;
     background-color: #e0f2f7;
     font-family: 'Segoe UI';
+    font-size: 20px;
     color: #1f3c44;
 }
 
@@ -44,11 +45,12 @@ body {
     align-items: center;
     flex-direction: column;
     width: 390px;
-    height: 400px;
+    height: 535px;
     outline: 2px dashed #5d5d5d;
     outline-offset: -12px;
     background-color: #e0f2f7;
     font-family: 'Segoe UI';
+    font-size: 16px;
     color: #1f3c44;
 }
 
@@ -65,4 +67,11 @@ body {
 #upload-container label:hover {
     cursor: pointer;
     text-decoration: underline;
+}
+
+#pasport img {
+    width: 390px;
+    height: 535px;
+    outline: 2px dashed #5d5d5d;
+    outline-offset: -12px;
 }
