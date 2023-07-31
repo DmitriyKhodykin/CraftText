@@ -25,6 +25,7 @@ def predict():
         ctz=pasport_data["CTZ"],
         release=pasport_data["RLS"],
         code=pasport_data["COD"],
+        fcs=pasport_data["FCS"],
     )
 
 

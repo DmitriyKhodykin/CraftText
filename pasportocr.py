@@ -156,10 +156,11 @@ class PasportOCR:
         mrzText = mrzText.split()
 
         # Если tesseract вначале добавил лишние символы - удалить
-        if mrzText[0][0:1] != 'P':
+        if len(mrzText[0]) < 40:
             del mrzText[0]
 
         # Проверка числа символов
+        print("MRZ:", mrzText)
         print("Символов в первой строке:", len(mrzText[0]))
         print("Символов во второй строке:", len(mrzText[1]))
 
@@ -200,7 +201,7 @@ class PasportOCR:
         
         # Транслитерация гражданства
         citizen = ""
-        print("MRZ:", mrzText)
+
         for i in mrzText[1][10:13]:
             citizen_element_eng = eng.index(i)
             citizen_element_ru = rus[citizen_element_eng]
@@ -228,6 +229,26 @@ class PasportOCR:
 
         # Код подразделения
         code = f"{mrzText[1][-9:-6]}-{mrzText[1][-6:-3]}"
+
+        # Проверка первой контрольной суммы (для номера и серии)
+        checksum_list: list = []
+        vesa = [7, 3, 1, 7, 3, 1, 7, 3, 1]
+        series_number = mrzText[1][0:9]
+        
+        # Результат умножения серии и номера на веса
+        for num in range(len(vesa)):
+            checksum_list.append(int(vesa[num]) * int(series_number[num]))
+
+        first_check_sum = sum(checksum_list)
+        first_check_number = str(first_check_sum)[-1:]
+        first_mrz_number = mrzText[1][9:10]
+
+        if int(first_check_number) == int(first_mrz_number):
+            first_check = "OK"
+        else:
+            first_check = "ОШ"
+
+        print("Контрольный список", first_check)
         
         pasdata = {
             'SRN': surname, 
@@ -240,6 +261,7 @@ class PasportOCR:
             'CTZ': citizen,
             'RLS': release,
             'COD': code,
+            'FCS': first_check,
         }
             
         return pasdata
