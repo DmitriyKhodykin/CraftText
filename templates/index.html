@@ -31,7 +31,7 @@
 
     <div class="block">
         <form id="pasport" method="POST" action="send.php">
-            <img id="pas-img" src="/static/Pasport3.png" alt="Фото Паспорта" />
+            <img id="pas-img" src= {{ image_path }} alt="Фото Паспорта" />
         </form>
     </div>
 
@@ -43,7 +43,7 @@
                 <p><b>Фамилия:</b> {{ surname }} </p>
                 <p><b>Имя:</b> {{ name }} </p>
                 <p><b>Отчество:</b> {{ second }} </p>
-                <p><b>Год рождения:</b> {{ year }} </p>
+                <p><b>Дата рождения:</b> {{ year }} </p>
                 <p><b>Серия/номер:</b> {{ series }} {{ num }} </p>
                 <p><b>Пол:</b> {{ gender }} </p>
                 <p><b>Гражданство:</b> {{ ctz }} </p>

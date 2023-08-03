@@ -4,7 +4,7 @@
 Машиночитаемая зона: 
 https://www.consultant.ru/document/cons_doc_LAW_284759/bc855030a3b448fca0965bbf45ee3ff7e77314e3/
 """
-
+import matplotlib.pyplot as plt
 
 import imutils
 from imutils.contours import sort_contours
@@ -13,6 +13,8 @@ import pytesseract
 import sys
 import cv2
 import re
+
+from config import tesseract_backend, tesseract_config
 
 
 rus = ['А','Б','В','Г',
@@ -41,20 +43,17 @@ class PasportOCR:
     def __init__(self, image_path):
         self.image_path = image_path
 
-    def resize(self):
+    def preprocessing_full(self):
         
-        try:
-            # Загрузка изображения
-            img = cv2.imread(self.image_path)
-            
-            # Изменение размеров
-            final_wide = 1400
-            r = float(final_wide) / img.shape[1]
-            dim = (final_wide, int(img.shape[0] * r))
-            img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
-        except AttributeError:
-            print("Изображение не загрузилось, проверьте путь")
+        # Загрузка изображения
+        img = cv2.imread(self.image_path)
         
+        # Изменение размеров
+        final_wide = 1400
+        r = float(final_wide) / img.shape[1]
+        dim = (final_wide, int(img.shape[0] * r))
+        img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+         
         # Фильтры (оттенки серого, размытие по Гауссу, пороговая обработка)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, (3,3), 0)
@@ -105,6 +104,20 @@ class PasportOCR:
 
         photo = img[y:pY, x:pX]
         return photo
+    
+    def preprocessing_light(self):
+        
+        # Загрузка изображения
+        img = cv2.imread(self.image_path)
+        
+        # Преобразование изображения в оттенки серого
+        gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Применение бинаризации для улучшения определения текста
+        _, binary_image = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY)
+
+        return binary_image
+
 
     def pasp_read(self, photo):
         image = photo
@@ -141,32 +154,35 @@ class PasportOCR:
             sys.exit(0)
         
         (x, y, w, h) = mrzBox
-        
+
         pX = int((x + w) * 0.03)
         pY = int((y + h) * 0.1)
         (x, y) = (x - pX, y - pY)
         (w, h) = (w + (pX * 2), h + (pY * 2))
-        # global mrz
+
         mrz = image[y:y + h, x:x + w]
-        config = (" --oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789><")
+        print("MRZ_shape", mrz.shape)
+
+        config = (tesseract_config)
         mrzText = pytesseract.image_to_string(mrz, lang='eng', config = config)
+        print("MRZ_raw:", mrzText)
 
         # Разделить код на две строки
-        mrzText = mrzText.replace(" ", "")
-        mrzText = mrzText.split()
+        # mrzText = mrzText.replace(" ", "")
+        mrzText = mrzText.split('\n')
 
         # Если tesseract вначале добавил лишние символы - удалить
         if len(mrzText[0]) < 40:
             del mrzText[0]
 
         # Проверка числа символов
-        print("MRZ:", mrzText)
-        print("Символов в первой строке:", len(mrzText[0]))
-        print("Символов во второй строке:", len(mrzText[1]))
+        print("MRZ_splited:", mrzText)
 
         # Разбор строки по элементам
-        el1 = mrzText[0]
-        el2 = mrzText[1]
+        el1 = mrzText[0].replace(" ", "")
+        el2 = mrzText[1].replace(" ", "")
+        print("Символов в первой строке:", len(el1))
+        print("Символов во второй строке:", len(el2))
 
         # Частые ошибки OCR
         el1 = el1.replace('1','I')
@@ -188,17 +204,42 @@ class PasportOCR:
                 ind = eng.index(str(j))
                 i[c] = rus[ind]
         
-        
         # Список в строку
-        surname = ''.join(el1[0])
-        name = ''.join(el1[1])
-        otch = ''.join(el1[2])
+        try:
+            surname = ''.join(el1[0])
+        except IndexError as error_surname:
+            print("Фамилия не распозналась:", error_surname)
+            surname = "Ошибка"
+        
+        try:
+            name = ''.join(el1[1])
+        except IndexError as error_name:
+            print("Имя не распозналась:", error_name)
+            name = "Ошибка"
+
+        try:
+            otch = ''.join(el1[2])
+        except IndexError as error_otch:
+            print("Отчество не распозналась:", error_otch)
+            otch = "Ошибка"
 
         # Серия, номер, дата
         seria = el2[0][0:3] + el2[2][0:1]
         nomer = el2[0][3:9]
         data = el2[1][0:6]
         
+        # Дата рождения
+        try:
+            if int(data[0:1]) > 2:
+                data = '19' + data
+            else:
+                data = '20' + data
+            data = data[6:8] + '.' + data[4:6] + '.' + data[0:4]
+        except Exception as error_birthdate:
+            print("Дата рождения не распозналась:", error_birthdate)
+            data = "Ошибка" 
+
+
         # Транслитерация гражданства
         citizen = ""
 
@@ -214,15 +255,6 @@ class PasportOCR:
             gender = "ЖЕН"
         else:
             gender = "Не определено"
-            
-        
-        # Дата рождения
-        if int(data[0:1]) > 2:
-            data = '19' + data
-        else:
-            data = '20' + data
-        
-        data = data[6:8] + '.' + data[4:6] + '.' + data[0:4]
 
         # Дата выдачи
         release = f"{mrzText[1][-11:-9]}.{mrzText[1][-13:-11]}.20{mrzText[1][-15:-13]}"
@@ -230,24 +262,28 @@ class PasportOCR:
         # Код подразделения
         code = f"{mrzText[1][-9:-6]}-{mrzText[1][-6:-3]}"
 
-        # Проверка первой контрольной суммы (для номера и серии)
-        checksum_list: list = []
-        vesa = [7, 3, 1, 7, 3, 1, 7, 3, 1]
-        series_number = mrzText[1][0:9]
-        
-        # Результат умножения серии и номера на веса
-        for num in range(len(vesa)):
-            checksum_list.append(int(vesa[num]) * int(series_number[num]))
+        try:
+            # Проверка первой контрольной суммы (для номера и серии)
+            checksum_list: list = []
+            vesa = [7, 3, 1, 7, 3, 1, 7, 3, 1]
+            series_number = mrzText[1][0:9]
+            
+            # Результат умножения серии и номера на веса
+            for num in range(len(vesa)):
+                checksum_list.append(int(vesa[num]) * int(series_number[num]))
 
-        first_check_sum = sum(checksum_list)
-        first_check_number = str(first_check_sum)[-1:]
-        first_mrz_number = mrzText[1][9:10]
+            first_check_sum = sum(checksum_list)
+            first_check_number = str(first_check_sum)[-1:]
+            first_mrz_number = mrzText[1][9:10]
 
-        if int(first_check_number) == int(first_mrz_number):
-            first_check = "OK"
-        else:
+            if int(first_check_number) == int(first_mrz_number):
+                first_check = "OK"
+            else:
+                first_check = "ОШ"
+        except ValueError as first_check_error:
+            print("Ошибка проверки первой контрольной суммы:", first_check_error)
             first_check = "ОШ"
-        
+
         pasdata = {
             'SRN': surname, 
             'NME': name, 
@@ -266,18 +302,16 @@ class PasportOCR:
 
     def exec(self):
         try:
-            photo = self.resize()
+            photo = self.preprocessing_full()
             pasdata = self.pasp_read(photo)
             print(pasdata)
             return pasdata
         except ValueError:
-            print("Error")
+            print("Ошибка чтения по всем вариантам preprocessing")
             photo = cv2.imread(self.image_path)
             pasdata = self.pasp_read(photo)
             print(pasdata)
             return pasdata
 
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
-ocr = PasportOCR("static/Pasport3.png")
-ocr.exec()
+pytesseract.pytesseract.tesseract_cmd = tesseract_backend

@@ -2,6 +2,7 @@ from flask import Flask, render_template
 import pytesseract
 
 from pasportocr import PasportOCR
+from config import image_path
 
 app = Flask(__name__)
 
@@ -9,12 +10,13 @@ app = Flask(__name__)
 @app.route("/predict", methods=['GET'])
 def predict():
     """For rendering results on HTML GUI"""
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
-    ocr = PasportOCR("static/Pasport3.png")
+
+    ocr = PasportOCR(image_path)
     pasport_data = ocr.exec()
     print(pasport_data)
     return render_template(
         'index.html', 
+        image_path=image_path,
         surname=pasport_data["SRN"], 
         name=pasport_data["NME"], 
         second=pasport_data["SNM"], 
