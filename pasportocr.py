@@ -14,6 +14,7 @@ import sys
 import cv2
 import re
 
+from utils import evaluate_document_quality
 from config import tesseract_backend, tesseract_config
 
 
@@ -47,7 +48,7 @@ class PasportOCR:
         
         # Загрузка изображения
         img = cv2.imread(self.image_path)
-        
+       
         # Изменение размеров
         final_wide = 1400
         r = float(final_wide) / img.shape[1]
@@ -121,6 +122,10 @@ class PasportOCR:
 
     def pasp_read(self, photo):
         image = photo
+
+        # Начальное качество изображения
+        quality_score = evaluate_document_quality(image)
+
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         (H, W) = gray.shape
         rectKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 7))
@@ -285,6 +290,7 @@ class PasportOCR:
             first_check = "ОШ"
 
         pasdata = {
+            'QSR': quality_score, 
             'SRN': surname, 
             'NME': name, 
             'SNM': otch, 

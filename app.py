@@ -17,6 +17,7 @@ def predict():
     return render_template(
         'index.html', 
         image_path=image_path,
+        quality_score = pasport_data["QSR"], 
         surname=pasport_data["SRN"], 
         name=pasport_data["NME"], 
         second=pasport_data["SNM"], 
