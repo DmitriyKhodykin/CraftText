@@ -14,7 +14,6 @@ import sys
 import cv2
 import re
 
-from utils import evaluate_document_quality
 from config import tesseract_backend, tesseract_config
 
 
@@ -124,8 +123,6 @@ class PasportOCR:
         image = photo
 
         # Начальное качество изображения
-        quality_score = evaluate_document_quality(image)
-
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         (H, W) = gray.shape
         rectKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 7))
@@ -289,8 +286,7 @@ class PasportOCR:
             print("Ошибка проверки первой контрольной суммы:", first_check_error)
             first_check = "ОШ"
 
-        pasdata = {
-            'QSR': quality_score, 
+        pasdata = { 
             'SRN': surname, 
             'NME': name, 
             'SNM': otch, 
